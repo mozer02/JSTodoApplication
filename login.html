@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+  </head>
+
+  <body>
+    <script src="/loadSharedScriptsAndStyles.js"></script>
+
+    <div id="menu"></div>
+
+    <form
+      name="loginForm"
+      action="https://reqres.in/api/login"
+      method="POST"
+      class="ui form"
+      style="padding: 10px"
+      onsubmit="login(event)"
+    >
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="Email" value="eve.holt@reqres.in" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="Password" value="cityslicka" />
+      </div>
+      <div class="field">
+        <div class="ui checkbox">
+          <input
+            name="rememberMe"
+            type="checkbox"
+            tabindex="0"
+          />
+          <label>Remember Me</label>
+        </div>
+      </div>
+      <button class="ui button" type="submit">Login</button>
+    </form>
+
+    <script>
+      //fetchapi ile veri çekeceğimiz için async yaptık
+      const login = async (event) => {
+        event.preventDefault(); // sayfa yenilenmesin
+
+        // api ya formdan göndereceğim değer.
+        const param = {
+          email: loginForm?.email?.value,
+          password: loginForm?.password?.value,
+        };
+
+        console.log("param", param);
+
+        // fetch post isteklerinde her zaman elimizdeki param objesini JSON.stringify çevirip göndeririz.
+        // headers : {"Content-Type": "application/json"} , eğer api yazıyorsak back tarafında bu istedeği karşılayacak olan endpointe isteğin json formatında gönderildiğini söylüyoruz.
+
+        /*
+        {
+            "email": "eve.holt@reqres.in",
+            "password": "cityslicka"
+        }
+            */
+
+        try {
+          let response = await fetch("https://reqres.in/api/login", {
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+            body: JSON.stringify(param), // elimizdeki objeyi api göndermeden önce json string çeviririz.JSON.stringify bu işlemi yapar.
+          });
+
+          // Storage işlemleri BOM (Browser Object Model) ile alaklaı işlemler.
+
+          console.log("response", response);
+          let data = await response.json();
+          console.log("login-result", data);
+
+          if(loginForm?.rememberMe?.checked == true){ // beni hatırla işaretlenmiş ise
+            // veriler key value pair olarak saklanır.
+            localStorage.setItem('token',data?.token);
+            localStorage.setItem('email', loginForm?.email?.value);
+            // localStorage biz bunu kod ile siline kadar bu bilgileri tarayıcıda saklar. rememberMe seçeneğine göre bu kullanıcı bilgilerini kalıcı olarak saklanıp saklanmamasına kara vermiş olduk.
+            // localStorage.removeItem('token'); localstorage daki bilgili yandaki gibi silebiliriz.
+           
+          } else {
+              //sessionStroge ise uygulamadan ayrılana kadar bu bilgileri tarayıcıda saklar.
+              // session storage daki bilgiler tarayıcı kapattığınız anda siliniz.
+
+              sessionStorage.setItem('token', data?.token);
+              sessionStorage.setItem('email', loginForm?.email?.value);
+              // location.href ile js ile sayfa yönlendişrdik.
+          }
+
+
+          window.location.href = 'index.html';
+
+ 
+        } catch (error) { 
+          console.log("login-error", error);
+          alert(error);
+        }
+      };
+    </script>
+  </body>
+</html>

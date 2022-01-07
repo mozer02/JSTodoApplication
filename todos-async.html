@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="" />
+  </head>
+  <body>
+    <script src="/loadSharedScriptsAndStyles.js"></script>
+    <div id="menu"></div>
+
+    <div id="loading" style="display: none">
+      <div class="ui active inverted dimmer">
+        <div class="ui large text loader">Loading</div>
+      </div>
+    </div>
+
+    <div class="grid container">
+      <div class="column" style="margin-bottom: 2rem; padding: 1rem">
+        <div class="ui fluid icon input">
+          <!-- onChange Input değişince tetiklenir enter tab başka bir yere tıklama vs -->
+          <!-- onkeyup="alert('keyup')" her tuşa bastığımda çalışır.  -->
+          <input
+            type="text"
+            onkeyup="search(event)"
+            placeholder="Search a very wide input..."
+          />
+          <i class="search icon"></i>
+        </div>
+      </div>
+      <div class="column" style="padding: 1rem">
+        <div class="ui middle aligned divided list" id="todos-container"></div>
+      </div>
+    </div>
+
+    <script>
+      var data = []; // global scope var keyword kullanırız.
+
+      // await ile promise çalıştırıyorsa o await'in function aşağıdaki gibi async olarak işaretlenmelidir.
+      // sayfa açılırken sayfaya yüklenecek olan todos bilgisini çeker. loading ayarlar. ve veri çekildekten sonra tüm itemları render eder.
+      window.onload = async function () {
+        showLoading();
+        // fetch api js ile bir apiye istek atıp json formatında veri çekmek httpget veya json formatındaki veriyi sunucuya api ye göndermek için kullandığımız bir js özelliğidir.
+        // ilk blok endpointimizi tanımladığımız blok.
+        await loadData();
+        hideLoading();
+        renderHtml(data); // tüm datayı render et
+        // console.log('data-1', data.length);
+      };
+
+      // sadece fetch ile veri çekilmesini sağlar.
+      const loadData = async () => {
+        // debugger;
+
+        let response = await fetch(
+          "https://jsonplaceholder.typicode.com/todos"
+        );
+        data = await response.json();
+
+        console.log("load", data);
+      };
+
+      // todoItem silmek için kullandığımız fonksiyon
+      const deleteTodo = (id) => {
+        const result = confirm("silmek istediğinize emin misiniz");
+
+        if (result) {
+          showLoading();
+          data = data.filter((x) => x.id != id);
+          hideLoading();
+          renderHtml(data);
+          alert("kayıt silindi");
+        } else {
+          alert("kayıt silinmedi");
+        }
+      };
+
+      // async veri çekilirken belirli bir süre geçeceği için kullanıcıya gösterdiğimiz loading 
+      const showLoading = () => {
+        const loadingDiv = document.getElementById("loading");
+        loadingDiv.setAttribute("style", "display:block");
+      };
+
+      // veri çekilince loading gizleriz.
+      const hideLoading = () => {
+        const loadingDiv = document.getElementById("loading");
+        loadingDiv.setAttribute("style", "display:none");
+      };
+
+      // sayfadaki her bir todo için todo item içeriğini değiştiren fonksiyon
+      // bana render olmuş item template getir.
+      const getRenderItemHtml = (item) => {
+        // sayfa ilk açılırken completed olanlar yeşil olmayanlar sarı gelsin diye yaptık
+
+        let buttonTemplate =
+          '<b style="color:red;line-height: 3rem;">Cannot Delete!</b>';
+
+        if (item.completed) {
+          buttonTemplate = `<button onclick='deleteTodo(${item?.id})' class="ui red button">Delete</button>`;
+        }
+
+        // eğer if for gibi js bağlı komutları çalıştıracak isek bunu `` template string içersinde yapmayız bir değişken oluşturup değerini eşitleriz. daha sonra aşağıda bu değeri değişktenden okuruz. ${deger}
+
+        const itemTemplate = `<div class="right floated content">
+          ${buttonTemplate}
+        </div>
+        <div class="ui right floated content">
+          
+            <div class="ui toggle checkbox" style="margin-top: 0.5rem;">
+                <input type="checkbox" onchange="changeStatus(${item.id})" ${
+          item?.completed ? "checked" : ""
+        } name="public"><label></label>
+            </div>
+        </div>
+        <div class="content">${item?.title}</div>`;
+
+        return itemTemplate;
+      };
+
+      // tüm sayfa yüklenirken tüm todos bilgisini sayfaya render dern fonksiyon
+      const renderHtml = (dataSource) => {
+        // debugger;
+
+        const container = document.getElementById("todos-container");
+        container.innerHTML = "";
+
+        dataSource.forEach((item) => {
+          // dinamik olarak oluşan kısım.
+          let itemTemplate = getRenderItemHtml(item);
+
+          container.innerHTML += `<div class="item" id="item_${
+            item.id
+          }" style="background-color:${item.completed ? "green" : "yellow"}">
+          
+          ${itemTemplate} 
+        </div>`;
+        });
+      };
+
+      // todo listesinden title değerine göre arayarak filtreleme yaparız.
+      const search = (event) => {
+        let searchText = event.target.value;
+        showLoading();
+
+        //console.log('değer içeriyormu', new RegExp('ali','i').test('ALI okula git'))
+        // title içerisinde aranan değer geçebler.
+
+        const filteredData = data.filter((x) =>
+          new RegExp(searchText, "i").test(x.title)
+        );
+
+        hideLoading();
+        renderHtml(filteredData); // filtered datayı render et
+
+        console.log("search", filteredData);
+        console.log("all-data", data);
+      };
+
+      // bir todo item completed değerini true false ayarlamamızı ve buna göre ekranın güncellenmesini sağlar.
+      const changeStatus = (id) => {
+        console.log("changeStatus");
+
+        const element = document.querySelector(`#item_${id}`);
+        const selectedItem = data.find((x) => x.id == id);
+
+        if (selectedItem != null) {
+          // değer true ise false false ise true yap
+          selectedItem.completed = !selectedItem.completed;
+        }
+
+        // const container = document.getElementById('todos-container');
+
+        // container.removeChild(element);
+
+        element.innerHTML = "";
+
+        console.log("element", element);
+
+        const backGroundColor = `background-color:${selectedItem.completed ? "green" : "yellow"}`;
+
+        // içerisine item gönderdim bana selectedItem göre güncel html döndü.
+        const itemTemplate = getRenderItemHtml(selectedItem);
+        element.innerHTML = itemTemplate;
+        element.setAttribute('style', backGroundColor);
+
+        // container.appendChild(element)
+      };
+    </script>
+  </body>
+</html>
